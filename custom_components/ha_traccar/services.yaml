@@ -1,0 +1,12 @@
+update_address:
+  name: 更新地址
+  description: 主动向 Traccar 请求一次逆地理编码，并刷新设备的 address 属性。
+  fields:
+    entity_id:
+      name: 实体
+      description: 要更新的 device_tracker 实体
+      required: true
+      example: "device_tracker.binyue"
+      selector:
+        entity:
+          domain: device_tracker

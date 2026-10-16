@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Traccar Server",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "username": "Username",
+          "password": "Password",
+          "ssl": "Enable SSL(https)",
+          "verify_ssl": "Verify SSL"
+        },
+        "data_description": {
+          "host": "Hostname or IP address of the Traccar server",
+          "port": "Default 8082",
+          "username": "Username (email) for the Traccar server",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to Traccar server",
+      "unknown": "Unknown error"
+    },
+    "abort": {
+      "already_configured": "This server is already configured"
+    }
+  },
+  "services": {
+    "update_address": {
+      "name": "Update address",
+      "description": "Request reverse geocoding from Traccar once and refresh the device's address attribute.",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "The device_tracker entity to update"
+        }
+      }
+    }
+  }
+}

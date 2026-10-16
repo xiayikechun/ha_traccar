@@ -1,0 +1,25 @@
+"""Helper functions for the ha_traccar integration."""
+from __future__ import annotations
+
+from pytraccar import DeviceModel, GeofenceModel
+
+
+def get_device(device_id: int, devices: list[DeviceModel]) -> DeviceModel | None:
+    """Return the device."""
+    return next((dev for dev in devices if dev["id"] == device_id), None)
+
+
+def get_first_geofence(
+    geofences: list[GeofenceModel],
+    target: list[int],
+) -> GeofenceModel | None:
+    """Return the first matching geofence."""
+    return next((gf for gf in geofences if gf["id"] in target), None)
+
+
+def get_geofences(
+    geofences: list[GeofenceModel],
+    target: list[int],
+) -> list[GeofenceModel]:
+    """Return all matching geofences."""
+    return [gf for gf in geofences if gf["id"] in target]
