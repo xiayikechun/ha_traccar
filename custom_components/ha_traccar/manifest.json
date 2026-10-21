@@ -3,7 +3,7 @@
   "name": "Traccar 服务器",
   "codeowners": ["@ludeeus"],
   "config_flow": true,
-  "documentation": "https://github.com/MagicStarTrace/ha_traccar",
+  "documentation": "https://github.com/xiayikechun/ha_traccar",
   "iot_class": "local_push",
   "requirements": ["pytraccar==2.1.1"],
   "version": "2.2.0"
