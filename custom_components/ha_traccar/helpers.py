@@ -22,4 +22,6 @@ def get_geofences(
     target: list[int],
 ) -> list[GeofenceModel]:
     """Return all matching geofences."""
+    if not target:
+        return []
     return [gf for gf in geofences if gf["id"] in target]

@@ -190,7 +190,6 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
         all_geofences = self.traccar_geofences
         geofence_names = [gf["name"] for gf in all_geofences]
         in_geofence = len(geofence_names) > 0
-        # 显示：多个用逗号分隔；没有则显示"不在围栏"
         geofence_display = ", ".join(geofence_names) if geofence_names else "不在围栏"
 
         # WGS84 -> GCJ02
@@ -213,6 +212,7 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
 
         # 里程：米 -> 公里
         total_distance_m = attrs.get("totalDistance", 0) or 0
+        trip_distance_m = attrs.get("distance", 0) or 0
 
         return {
             # --- 地址 ---
@@ -226,16 +226,17 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
             ATTR_TRACKER: DOMAIN,
 
             # --- 围栏 ---
-            ATTR_GEOFENCE: geofence_display,           # "围栏A, 围栏B" 或 "不在围栏"
-            "in_geofence": in_geofence,                # 布尔：是否在任意围栏内
-            "geofence_list": geofence_names,           # 列表：所有围栏名称
-            "geofence_count": len(geofence_names),     # 数量
+            ATTR_GEOFENCE: geofence_display,
+            "in_geofence": in_geofence,
+            "geofence_list": geofence_names,
+            "geofence_count": len(geofence_names),
 
             # --- 网络状态 / 速度 / 海拔 / 里程 ---
             "online": is_online,
             ATTR_SPEED: round(pos["speed"] * 3.6, 1),
             ATTR_ALTITUDE: round(pos["altitude"], 1),
             "total_distance": round(total_distance_m / 1000, 2),
+            "trip_distance": round(trip_distance_m / 1000, 2),
 
             # --- 高德坐标 & 最后位置时间 ---
             "gaode_lat": gaode_lat,

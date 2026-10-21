@@ -23,7 +23,11 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from .const import DOMAIN, LOGGER, SERVICE_UPDATE_ADDRESS
 from .coordinator import TraccarServerCoordinator
 
-PLATFORMS: list[Platform] = [Platform.DEVICE_TRACKER]
+PLATFORMS: list[Platform] = [
+    Platform.DEVICE_TRACKER,
+    Platform.BINARY_SENSOR,
+    Platform.SENSOR,
+]
 
 SERVICE_UPDATE_ADDRESS_SCHEMA = vol.Schema(
     {
@@ -65,7 +69,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # ---------- 注册服务（只注册一次）----------
     if not hass.services.has_service(DOMAIN, SERVICE_UPDATE_ADDRESS):
 
         async def async_handle_update_address(call: ServiceCall) -> None:
