@@ -61,7 +61,7 @@ custom_components/ha_traccar/
 └── translations/
     ├── en.json
     └── zh-Hans.json
-    
+```    
 4. 重启 Home Assistant。
 ---
 
