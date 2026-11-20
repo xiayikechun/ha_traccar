@@ -228,7 +228,7 @@ class TraccarTotalDistanceSensor(TraccarServerEntity, SensorEntity):
 
     @property
     def native_value(self):
-        attrs = self.traccar_position["attributes"]
+        attrs = self.traccar_position.get("attributes") or {}
         return round((attrs.get("totalDistance", 0) or 0) / 1000, 2)
 
 
@@ -253,7 +253,7 @@ class TraccarTripDistanceSensor(TraccarServerEntity, SensorEntity):
 
     @property
     def native_value(self):
-        attrs = self.traccar_position["attributes"]
+        attrs = self.traccar_position.get("attributes") or {}
         return round((attrs.get("distance", 0) or 0) / 1000, 2)
 
 
@@ -278,7 +278,8 @@ class TraccarAltitudeSensor(TraccarServerEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return round(self.traccar_position["altitude"], 1)
+        altitude = self.traccar_position.get("altitude")
+        return round(altitude, 1) if altitude is not None else None
 
 
 class TraccarAddressSensor(TraccarServerEntity, SensorEntity):

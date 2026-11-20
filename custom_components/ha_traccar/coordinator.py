@@ -16,12 +16,11 @@ from pytraccar import (
 )
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, LOGGER
-from .helpers import get_device, get_first_geofence, get_geofences
+from .helpers import get_device, get_geofences
 
 
 class TraccarServerCoordinatorDataDevice(TypedDict):
@@ -49,6 +48,7 @@ class TraccarServerCoordinator(DataUpdateCoordinator[TraccarServerCoordinatorDat
         ssl: bool,
         username: str,
         password: str,
+        session: aiohttp.ClientSession | None = None,
     ) -> None:
         """Initialize global ha_traccar data updater."""
         super().__init__(
@@ -58,6 +58,8 @@ class TraccarServerCoordinator(DataUpdateCoordinator[TraccarServerCoordinatorDat
             update_interval=None,
         )
         self.client = client
+        # 使用集成专用 session（按配置的 SSL 校验设置创建），供逆地理编码复用
+        self._session = session
         self._host = host
         self._port = port
         self._ssl = ssl
@@ -137,15 +139,29 @@ class TraccarServerCoordinator(DataUpdateCoordinator[TraccarServerCoordinatorDat
             async_dispatcher_send(self.hass, f"{DOMAIN}_{device_id}")
 
     async def subscribe(self) -> None:
-        """Subscribe to events."""
-        try:
-            await self.client.subscribe(self.handle_subscription_data)
-        except TraccarException as ex:
-            if self._should_log_subscription_error:
-                self._should_log_subscription_error = False
-                LOGGER.error("Error while subscribing to Traccar: %s", ex)
-            await asyncio.sleep(10)
-            await self.subscribe()
+        """Subscribe to events, reconnecting on failure.
+
+        使用循环而非递归重试，避免长期运行时递归层数累积导致栈溢出。
+        """
+        while True:
+            try:
+                await self.client.subscribe(self.handle_subscription_data)
+                # 订阅正常结束（连接被服务端关闭）时稍作等待再重连，避免紧密循环
+                await asyncio.sleep(5)
+            except asyncio.CancelledError:
+                # 卸载集成时任务被取消，正常退出
+                raise
+            except TraccarException as ex:
+                if self._should_log_subscription_error:
+                    self._should_log_subscription_error = False
+                    LOGGER.error("Error while subscribing to Traccar: %s", ex)
+                await asyncio.sleep(10)
+            except Exception as ex:  # pylint: disable=broad-except
+                # 其他异常（如网络抖动）同样重试，避免订阅任务直接终止
+                if self._should_log_subscription_error:
+                    self._should_log_subscription_error = False
+                    LOGGER.exception("Unexpected error while subscribing to Traccar: %s", ex)
+                await asyncio.sleep(10)
 
     # ------------------------------------------------------------------
     # 按需更新地址
@@ -171,7 +187,10 @@ class TraccarServerCoordinator(DataUpdateCoordinator[TraccarServerCoordinatorDat
         url = f"{protocol}://{self._host}:{self._port}/api/server/geocode"
         params = {"latitude": str(lat), "longitude": str(lon)}
 
-        session = async_get_clientsession(self.hass)
+        session = self._session
+        if session is None:
+            LOGGER.error("No client session available for geocode request")
+            return
         auth = aiohttp.BasicAuth(self._username, self._password)
 
         LOGGER.debug("Requesting geocode: GET %s params=%s", url, params)

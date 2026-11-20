@@ -184,7 +184,7 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return device specific attributes."""
         pos = self.traccar_position
-        attrs = pos["attributes"]
+        attrs = pos.get("attributes") or {}
 
         # ---- 围栏处理：可能同时处于多个围栏 ----
         all_geofences = self.traccar_geofences
@@ -192,8 +192,13 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
         in_geofence = len(geofence_names) > 0
         geofence_display = ", ".join(geofence_names) if geofence_names else "不在围栏"
 
-        # WGS84 -> GCJ02
-        gaode_lon, gaode_lat = wgs84_to_gcj02(pos["longitude"], pos["latitude"])
+        # WGS84 -> GCJ02（坐标为 None 时保持原值，避免转换异常）
+        longitude = pos.get("longitude")
+        latitude = pos.get("latitude")
+        if longitude is None or latitude is None:
+            gaode_lon, gaode_lat = longitude, latitude
+        else:
+            gaode_lon, gaode_lat = wgs84_to_gcj02(longitude, latitude)
 
         # 最后位置时间
         last_time = (
@@ -214,6 +219,12 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
         total_distance_m = attrs.get("totalDistance", 0) or 0
         trip_distance_m = attrs.get("distance", 0) or 0
 
+        # speed / altitude 可能缺失或为 None，避免 round(None) 抛异常
+        speed_ms = pos.get("speed")
+        speed_kmh = round(speed_ms * 3.6, 1) if speed_ms is not None else None
+        altitude = pos.get("altitude")
+        altitude_value = round(altitude, 1) if altitude is not None else None
+
         return {
             # --- 地址 ---
             ATTR_ADDRESS: pos.get("address")
@@ -233,8 +244,8 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
 
             # --- 网络状态 / 速度 / 海拔 / 里程 ---
             "online": is_online,
-            ATTR_SPEED: round(pos["speed"] * 3.6, 1),
-            ATTR_ALTITUDE: round(pos["altitude"], 1),
+            ATTR_SPEED: speed_kmh,
+            ATTR_ALTITUDE: altitude_value,
             "total_distance": round(total_distance_m / 1000, 2),
             "trip_distance": round(trip_distance_m / 1000, 2),
 
@@ -254,7 +265,7 @@ class TraccarServerDeviceTracker(TraccarServerEntity, TrackerEntity):
 
     @property
     def location_accuracy(self) -> float:
-        return self.traccar_position["accuracy"]
+        return self.traccar_position.get("accuracy") or 0
 
     @property
     def source_type(self) -> SourceType:

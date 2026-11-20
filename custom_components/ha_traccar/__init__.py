@@ -60,6 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ssl=entry.data[CONF_SSL],
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
+        session=client_session,
     )
 
     await coordinator.async_config_entry_first_refresh()
@@ -84,8 +85,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             unique_id = entity_entry.unique_id
 
             for coord in hass.data.get(DOMAIN, {}).values():
-                for dev_id, dev_data in coord.data.items():
-                    if dev_data["device"]["uniqueId"] == unique_id:
+                for dev_id, dev_data in (coord.data or {}).items():
+                    if dev_data["device"].get("uniqueId") == unique_id:
                         await coord.async_request_address(dev_id)
                         return
 
